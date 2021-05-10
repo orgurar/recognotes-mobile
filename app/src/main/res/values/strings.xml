@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">RecogNotes</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="recognotes">RecogNotes</string>
+    <string name="recognotes_main_instruction">Press to Start Recording</string>
+    <string name="recognotes_bpm_placeholder">Enter Recording BPM</string>
+    <string name="metronome">Metronome</string>
+    <string name="start_record_btn_text">Start Record</string>
+    <string name="stop_record_btn_text">Stop Record</string>
+
+    <string name="submit_audio">Submit Audio</string>
+    <string name="current_props">Current Properties:</string>
+    <string name="submit_bpm_placeholder">recordings BPM here</string>
+    <string name="submit_filename_placeholder">recordings filename here</string>
+    <string name="current_sheetsname">Current Sheets Name:</string>
+    <string name="submit_sheetsname_placeholder">Enter Sheets File Name</string>
+</resources>
