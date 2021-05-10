@@ -16,7 +16,7 @@
     <string name="submit_audio">Submit Audio</string>
     <string name="current_props">Current Properties:</string>
     <string name="submit_bpm_placeholder">recordings BPM here</string>
-    <string name="submit_filename_placeholder">recordings filename here</string>
+    <string name="submit_samplerate_placeholder">recordings sample rate here</string>
     <string name="current_sheetsname">Current Sheets Name:</string>
     <string name="submit_sheetsname_placeholder">Enter Sheets File Name</string>
 </resources>

@@ -109,8 +109,8 @@ public class MainActivity extends AppCompatActivity {
                     // Create a new Bundle to send to the new Intent
                     Bundle intentParameters = new Bundle();
                     intentParameters.putInt("bpm", recordingBPM);
-//                    intentParameters.putString("recording_path", recordFilePathWAV);
-                    intentParameters.putString("recording_path", "wavfile path here");
+                    intentParameters.putInt("sample_rate", 44100);
+                    intentParameters.putString("recording_path", recordFilePathWAV);
 
                     // add bundle to intent
                     intent.putExtras(intentParameters);
