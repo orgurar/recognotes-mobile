@@ -8,7 +8,9 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,6 +33,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
     // FFMpeg Instance
@@ -52,6 +56,20 @@ public class MainActivity extends AppCompatActivity {
     private String recordFilePathWAV;
     private int recordingBPM;
 
+    // Metronome and Media Player
+    private MediaPlayer music;
+    private Timer metronomeTimer = new Timer("Metronome Timer", true);
+    private TimerTask tone = new TimerTask() {
+        @Override
+        public void run() {
+            music = MediaPlayer.create(MainActivity.this, R.raw.beep);
+            music.start();
+        }
+    };
+
+    // Broadcast Receiver
+    private BroadcastReceivers myReceiver = new BroadcastReceivers();
+
     // UI Components
     private ImageButton recordButton;
     private Chronometer recordTimer;
@@ -63,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // activate the broadcast receiver
+        setBroadcastReceiver();
 
         // load FFMpeg library
         try {
@@ -134,12 +155,9 @@ public class MainActivity extends AppCompatActivity {
                         // start metronome is needed
                         final boolean useMetronome = recordMetronome.isChecked();
                         if (useMetronome) {
-                            // play metronome ticks
-                            Toast.makeText(MainActivity.this, "Use Metronome", Toast.LENGTH_SHORT).show();
-                        }
-                        else {
-                            // do not play metronome ticks
-                            Toast.makeText(MainActivity.this, "Do not use Metronome", Toast.LENGTH_SHORT).show();
+                            // calculate BPM and play metronome ticks
+                            int oneBeep = (60000 / recordingBPM); // in ms
+                            metronomeTimer.scheduleAtFixedRate(tone, 0, oneBeep);
                         }
 
                         // Start Recording
@@ -155,6 +173,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // cancel if any beep
+        metronomeTimer.cancel();
+    }
+
+    private void setBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        filter.addAction(Intent.ACTION_POWER_CONNECTED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        // Register the receiver using the activity context.
+        this.registerReceiver(myReceiver, filter);
     }
 
     /** Recordings */
@@ -258,7 +293,6 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onSuccess() {
-                    Toast.makeText(MainActivity.this, "FFMpeg Library Loaded Successfully", Toast.LENGTH_SHORT).show();
                 }
 
                 @Override
