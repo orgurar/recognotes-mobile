@@ -10,6 +10,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Build;
@@ -42,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
 
     // Media Recorder Defaults
     private static final int MEDIA_RECORDER_AUDIO_SOURCE = MediaRecorder.AudioSource.MIC;
-    private static final int MEDIA_RECORDER_OUTPUT_FORMAT = MediaRecorder.OutputFormat.THREE_GPP;
-    private static final int MEDIA_RECORDER_AUDIO_ENCODER = MediaRecorder.AudioEncoder.AMR_NB;
+    private static final int MEDIA_RECORDER_OUTPUT_FORMAT = MediaRecorder.OutputFormat.DEFAULT;
+    private static final int MEDIA_RECORDER_AUDIO_ENCODER = MediaRecorder.AudioEncoder.DEFAULT;
 
     // Permission Defaults
     private static final String RECORD_PERMISSION = Manifest.permission.RECORD_AUDIO;
@@ -118,7 +119,8 @@ public class MainActivity extends AppCompatActivity {
                     // using FFMpeg, convert the 3gp file to wav file
                     File threeGP = new File(recordFilePath);
                     try {
-                        executeFFMpegCommand(new String[]{"-i " + threeGP.getAbsolutePath() + " -acodec pcm_u8 " + recordFilePathWAV});
+//                        executeFFMpegCommand(new String[]{"-i " + threeGP.getAbsolutePath() + " -acodec pcm_u8 " + recordFilePathWAV});
+                        executeFFMpegCommand(new String[]{"-version"});
                     }
                     catch (FFmpegCommandAlreadyRunningException e) {
                         e.printStackTrace();
@@ -333,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String message) {
                 super.onSuccess(message);
+                System.out.println(message);
             }
         });
     }
