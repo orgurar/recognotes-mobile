@@ -77,7 +77,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 }
 
                 // now send the RESTful API request to the server
-                File file = new File(prop_filename.substring(0, prop_filename.length() - 4) + ".3gp");
+                File file = new File(prop_filename);
                 playAudio(file);
             }
         });
