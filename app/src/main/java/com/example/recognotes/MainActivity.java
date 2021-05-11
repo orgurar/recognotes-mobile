@@ -2,23 +2,17 @@ package com.example.recognotes;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.media.AudioRecord;
 import android.media.MediaPlayer;
-import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.util.Log;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.EditText;
@@ -26,42 +20,19 @@ import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
-import com.github.hiteshsondhi88.libffmpeg.FFmpegLoadBinaryResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
-import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
-import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
-    // FFMpeg Instance
-    FFmpeg fFmpeg;
+    // Audio Recorder
+    private WavAudioRecorder wavAudioRecorder;
+    private String wavFilePath;
 
-    // Media Recorder Defaults
-    private static final int MEDIA_RECORDER_AUDIO_SOURCE = MediaRecorder.AudioSource.MIC;
-    private static final int MEDIA_RECORDER_OUTPUT_FORMAT = MediaRecorder.OutputFormat.THREE_GPP;
-    private static final int MEDIA_RECORDER_AUDIO_ENCODER = MediaRecorder.AudioEncoder.AMR_NB;
 
     // Permission Defaults
     private static final String RECORD_PERMISSION = Manifest.permission.RECORD_AUDIO;
+    private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
     private static final int PERMISSION_CODE = 21;
-
-    // Media Recorder
-    private MediaRecorder mediaRecorder;
-    private boolean isRecording = false;
-    private String recordFilePath;
-    private String recordFilePathWAV;
-    private int recordingBPM;
 
     // Metronome and Media Player
     private MediaPlayer metronomePlayer;
@@ -77,6 +48,11 @@ public class MainActivity extends AppCompatActivity {
     // Broadcast Receiver
     private final BroadcastReceivers myReceiver = new BroadcastReceivers();
 
+    // recording's properties
+    private String recordFilePath;
+    private int recordingBPM;
+    private boolean isRecording = false;
+
     // UI Components
     private ImageButton recordButton;
     private Chronometer recordTimer;
@@ -89,17 +65,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // initialize wav recorder
+        wavFilePath = this.getExternalFilesDir("/").getAbsolutePath() + "/record.wav";
+        wavAudioRecorder = WavAudioRecorder.getInstanse();
+        wavAudioRecorder.setOutputFile(wavFilePath);
+
         // activate the broadcast receiver
         setBroadcastReceiver();
-
-        // load FFMpeg library
-        /*try {
-            loadFFMpegLibrary();
-        }
-        catch(FFmpegNotSupportedException e) {
-            e.printStackTrace();
-        }*/
-        loadFFMpegBinary();
 
         // check if device already has permissions
         if (!checkPermissions())
@@ -115,34 +87,8 @@ public class MainActivity extends AppCompatActivity {
         recordButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(isRecording) {
-                    //Stop Recording
-                    stopRecording();
-
-                    // Change button image and set Recording state to false
-                    recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_stopped, null));
-                    isRecording = false;
-
-                    // using FFMpeg, convert the 3gp file to wav file
-                    File threeGP = new File(recordFilePath);
-                    String ffmpegCommand = "ffmpeg -i " + threeGP.getAbsolutePath() + " -acodec pcm_u8 " + recordFilePathWAV;
-                    execFFmpegBinary(new String[]{ffmpegCommand});
-
-                    // new intent to jump between screens
-                    Intent intent = new Intent(MainActivity.this, SubmitAudioActivity.class);
-
-                    // Create a new Bundle to send to the new Intent
-                    Bundle intentParameters = new Bundle();
-                    intentParameters.putInt("bpm", recordingBPM);
-                    intentParameters.putInt("sample_rate", 44100);
-                    intentParameters.putString("recording_path", recordFilePathWAV);
-
-                    // add bundle to intent
-                    intent.putExtras(intentParameters);
-                    startActivity(intent);
-                    finish();
-                } else {
-                    // "Check permission to record audio
+                if (WavAudioRecorder.State.INITIALIZING == wavAudioRecorder.getState()) {
+                    // should start recording
                     if(checkPermissions()) {
                         // validate BPM input
                         final String bpmText = recordBPMInput.getText().toString();
@@ -155,6 +101,9 @@ public class MainActivity extends AppCompatActivity {
                             recordBPMInput.setError("BPM value invalid! Should be between 0 - 500");
                             return;
                         }
+                        //Start timer from 0
+                        recordTimer.setBase(SystemClock.elapsedRealtime());
+                        recordTimer.start();
 
                         // start metronome is needed
                         final boolean useMetronome = recordMetronome.isChecked();
@@ -165,7 +114,8 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         // Start Recording
-                        startRecording();
+                        wavAudioRecorder.prepare();
+                        wavAudioRecorder.start();
 
                         // Change button image and set Recording state to false
                         recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_recording, null));
@@ -174,6 +124,41 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         requestPermissions();
                     }
+                }
+                else if (WavAudioRecorder.State.ERROR == wavAudioRecorder.getState()) {
+                    recordTimer.stop();
+                    wavAudioRecorder.release();
+                    wavAudioRecorder = WavAudioRecorder.getInstanse();
+                    wavAudioRecorder.setOutputFile(wavFilePath);
+                    // Change button image and set Recording state to false
+                    recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_stopped, null));
+                    isRecording = false;
+                }
+                else {
+                    // Stop timer
+                    recordTimer.stop();
+
+                    //Stop Recording
+                    wavAudioRecorder.stop();
+                    wavAudioRecorder.reset();
+
+                    // Change button image and set Recording state to false
+                    recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_stopped, null));
+                    isRecording = false;
+
+                    // new intent to jump between screens
+                    Intent intent = new Intent(MainActivity.this, SubmitAudioActivity.class);
+
+                    // Create a new Bundle to send to the new Intent
+                    Bundle intentParameters = new Bundle();
+                    intentParameters.putInt("bpm", recordingBPM);
+                    intentParameters.putInt("sample_rate", 44100);
+                    intentParameters.putString("recording_path", wavFilePath);
+
+                    // add bundle to intent
+                    intent.putExtras(intentParameters);
+                    startActivity(intent);
+                    finish();
                 }
             }
         });
@@ -196,58 +181,6 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(myReceiver, filter);
     }
 
-    /** Recordings */
-
-    /*
-    Function will stop the recording timer and the audio recorder
-    */
-    private void stopRecording() {
-        // Stop Timer
-        recordTimer.stop();
-
-        // Stop media recorder and set it to null for further use to record new audio
-        mediaRecorder.stop();
-        mediaRecorder.release();
-        mediaRecorder = null;
-    }
-
-    /*
-    Will start the recording and generate a path for the file
-     */
-    private void startRecording() {
-        // start timer from 0
-        recordTimer.setBase(SystemClock.elapsedRealtime());
-        recordTimer.start();
-
-        // get app external directory path
-        String recordPath = this.getExternalFilesDir("/").getAbsolutePath();
-
-        // get current date and time
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss", Locale.US);
-        Date now = new Date();
-        String nowDate = formatter.format(now);
-
-        // initialize filename variable with date and time at the end to ensure the new file wont overwrite previous file
-        recordFilePath = recordPath + "/" + "Recording_" + nowDate + ".3gp";
-        recordFilePathWAV = recordPath + "/" + "Recording_" + nowDate + ".wav";
-
-        // setup Media Recorder for recording
-        mediaRecorder = new MediaRecorder();
-        mediaRecorder.setAudioSource(MEDIA_RECORDER_AUDIO_SOURCE);
-        mediaRecorder.setOutputFormat(MEDIA_RECORDER_OUTPUT_FORMAT);
-        mediaRecorder.setOutputFile(recordFilePath);
-        mediaRecorder.setAudioEncoder(MEDIA_RECORDER_AUDIO_ENCODER);
-
-        try {
-            mediaRecorder.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        //Start Recording
-        mediaRecorder.start();
-    }
-
     /** Permissions */
 
     /*
@@ -255,7 +188,8 @@ public class MainActivity extends AppCompatActivity {
      */
     private boolean checkPermissions() {
         //Check permission
-        return ActivityCompat.checkSelfPermission(this, RECORD_PERMISSION) == PackageManager.PERMISSION_GRANTED;
+        return ActivityCompat.checkSelfPermission(this, RECORD_PERMISSION) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, STORAGE_PERMISSION) == PackageManager.PERMISSION_GRANTED;
     }
 
     /*
@@ -264,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestPermissions() {
         ActivityCompat.requestPermissions(this, new String[]{
                 RECORD_PERMISSION,
+                STORAGE_PERMISSION,
         }, PERMISSION_CODE);
     }
 
@@ -280,137 +215,6 @@ public class MainActivity extends AppCompatActivity {
                 // Permissions denied
             else
                 Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /** FFMpeg Library */
-
-    /*public void loadFFMpegLibrary() throws FFmpegNotSupportedException {
-        if (fFmpeg == null) {
-            fFmpeg = FFmpeg.getInstance(this);
-
-            fFmpeg.loadBinary(new FFmpegLoadBinaryResponseHandler() {
-                @Override
-                public void onFailure() {
-                    Toast.makeText(MainActivity.this, "FFMpeg Library Failed to Load", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onSuccess() {
-                }
-
-                @Override
-                public void onStart() {
-
-                }
-
-                @Override
-                public void onFinish() {
-
-                }
-            });
-        }
-    }
-
-    public void executeFFMpegCommand(String[] command) throws FFmpegCommandAlreadyRunningException {
-        fFmpeg.execute(command, new ExecuteBinaryResponseHandler() {
-            @Override
-            public void onFailure(String message) {
-                super.onFailure(message);
-            }
-
-            @Override
-            public void onFinish() {
-                super.onFinish();
-            }
-
-            @Override
-            public void onProgress(String message) {
-                super.onProgress(message);
-            }
-
-            @Override
-            public void onStart() {
-                super.onStart();
-            }
-
-            @Override
-            public void onSuccess(String message) {
-                super.onSuccess(message);
-                System.out.println(message);
-            }
-        });
-    }*/
-
-    private void showUnsupportedExceptionDialog() {
-        new AlertDialog.Builder(MainActivity.this)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle("Device Not Supported")
-                .setMessage("Device Not Supported")
-                .setCancelable(false)
-                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        MainActivity.this.finish();
-                    }
-                })
-                .create()
-                .show();
-    }
-
-    private void loadFFMpegBinary() {
-        try {
-            fFmpeg.loadBinary(new LoadBinaryResponseHandler() {
-                @Override
-                public void onFailure() {
-                    showUnsupportedExceptionDialog();
-                }
-            });
-        } catch (FFmpegNotSupportedException e) {
-            showUnsupportedExceptionDialog();
-        }
-    }
-
-    private void execFFmpegBinary(final String[] command) {
-        try {
-            fFmpeg.execute(command, new ExecuteBinaryResponseHandler() {
-                @Override
-                public void onFailure(String s) {
-//                    addTextViewToLayout("FAILED with output : "+s);
-                    Toast.makeText(MainActivity.this, "Command Failed :(", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onSuccess(String s) {
-//                    addTextViewToLayout("SUCCESS with output : "+s);
-                    Toast.makeText(MainActivity.this, "Succeed :)", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onProgress(String s) {
-//                    Log.d(TAG, "Started command : ffmpeg "+command);
-//                    addTextViewToLayout("progress : "+s);
-//                    progressDialog.setMessage("Processing\n"+s);
-                }
-
-                @Override
-                public void onStart() {
-//                    outputLayout.removeAllViews();
-//
-//                    Log.d(TAG, "Started command : ffmpeg " + command);
-//                    progressDialog.setMessage("Processing...");
-//                    progressDialog.show();
-                }
-
-                @Override
-                public void onFinish() {
-//                    Log.d(TAG, "Finished command : ffmpeg "+command);
-//                    progressDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "Finished...", Toast.LENGTH_SHORT).show();
-                }
-            });
-        } catch (FFmpegCommandAlreadyRunningException e) {
-            // do nothing for now
         }
     }
 }
