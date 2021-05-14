@@ -6,6 +6,26 @@ android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
 
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/ASL2.0'
+        exclude("META-INF/*.kotlin_module")
+    }
+
+    dependencies {
+        implementation  (group: 'org.apache.httpcomponents' , name: 'httpmime' , version: '4.3.5')
+    }
+
+    android {
+        useLibrary 'org.apache.http.legacy'
+    }
+
     defaultConfig {
         applicationId "com.example.recognotes"
         minSdkVersion 16

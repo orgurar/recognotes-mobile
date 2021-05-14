@@ -10,7 +10,7 @@ import androidx.annotation.Nullable;
  * Background music service.
  */
 public class MyService extends Service {
-    private MediaPlayer mMediaPlayer;
+    private MediaPlayer mediaPlayer;
 
     @Nullable
     @Override
@@ -19,11 +19,11 @@ public class MyService extends Service {
     }
 
     public  void onCreate() {
-        mMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.music);
-        mMediaPlayer.setLooping(true);
+        mediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.music);
+        mediaPlayer.setLooping(true);
     }
 
-    public void onStart(Intent intent, int startId) { mMediaPlayer.start(); }
+    public void onStart(Intent intent, int startId) { mediaPlayer.start(); }
 
-    public  void onDestroy() { mMediaPlayer.stop(); }
+    public  void onDestroy() { mediaPlayer.stop(); }
 }

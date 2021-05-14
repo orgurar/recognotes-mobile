@@ -1,12 +1,10 @@
 package com.example.recognotes;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -16,11 +14,16 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
-
-import org.w3c.dom.Text;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.*;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 public class SubmitAudioActivity extends AppCompatActivity {
@@ -77,8 +80,12 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 }
 
                 // now send the RESTful API request to the server
-                File file = new File(prop_filename);
-                playAudio(file);
+                try {
+                    makeAPICall(prop_filename, prop_bpm, prop_samplerate, sheetsName);
+                }
+                catch (IOException e) {
+
+                }
             }
         });
 
@@ -96,7 +103,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked) {
-                    stopMediaPlayer();
+                    stopServiceMediaPlayer();
                 } else {
                     startService(new Intent(getApplicationContext(), MyService.class));
                     ring = MediaPlayer.create(SubmitAudioActivity.this, R.raw.music);
@@ -104,6 +111,36 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void makeAPICall(String filePath, int bpm, int sampleRate, String sheetsName) throws IOException {
+        String backendAPI = "http://192.168.1.26:5000/proccess_audio";
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        HttpPost uploadFile = new HttpPost(backendAPI);
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+        String fileData = "{" +
+                "\"sample_rate\": " + sampleRate + ", " +
+                "\"bpm\": " + bpm + ", " +
+                "\"sheets_title\": " + sheetsName +
+                "}";
+
+        builder.addTextBody("file_data", fileData, ContentType.TEXT_PLAIN);
+
+// This attaches the file to the POST:
+        File f = new File(filePath);
+        builder.addBinaryBody(
+                "file",
+                new FileInputStream(f),
+                ContentType.APPLICATION_OCTET_STREAM,
+                f.getName()
+        );
+
+        HttpEntity multipart = builder.build();
+        uploadFile.setEntity(multipart);
+        CloseableHttpResponse response = httpClient.execute(uploadFile);
+        HttpEntity responseEntity = response.getEntity();
+        Toast.makeText(this, responseEntity.getContent().toString(), Toast.LENGTH_SHORT).show();
     }
 
     //TMP
@@ -130,14 +167,14 @@ public class SubmitAudioActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        stopMediaPlayer();
+        stopServiceMediaPlayer();
     }
 
     /** Media Player */
     /*
     stops the music
      */
-    public void stopMediaPlayer() {
+    public void stopServiceMediaPlayer() {
         try {
             if (ring != null) {
                 if (ring.isPlaying())
