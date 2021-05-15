@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -14,17 +15,15 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.*;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class SubmitAudioActivity extends AppCompatActivity {
     // Media Player for music service
@@ -80,12 +79,14 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 }
 
                 // now send the RESTful API request to the server
-                try {
-                    makeAPICall(prop_filename, prop_bpm, prop_samplerate, sheetsName);
-                }
-                catch (IOException e) {
+                String fileData = "{" +
+                        "\"sample_rate\": " + prop_samplerate + ", " +
+                        "\"bpm\": " + prop_bpm + ", " +
+                        "\"sheets_title\": " + sheetsName +
+                        "}";
 
-                }
+                UploadTask uploadTask = new UploadTask();
+                uploadTask.execute(new String[]{prop_filename, fileData});
             }
         });
 
@@ -113,35 +114,31 @@ public class SubmitAudioActivity extends AppCompatActivity {
         });
     }
 
-    private void makeAPICall(String filePath, int bpm, int sampleRate, String sheetsName) throws IOException {
-        String backendAPI = "http://192.168.1.26:5000/proccess_audio";
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost uploadFile = new HttpPost(backendAPI);
-        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-
-        String fileData = "{" +
-                "\"sample_rate\": " + sampleRate + ", " +
-                "\"bpm\": " + bpm + ", " +
-                "\"sheets_title\": " + sheetsName +
-                "}";
-
-        builder.addTextBody("file_data", fileData, ContentType.TEXT_PLAIN);
-
-// This attaches the file to the POST:
-        File f = new File(filePath);
-        builder.addBinaryBody(
-                "file",
-                new FileInputStream(f),
-                ContentType.APPLICATION_OCTET_STREAM,
-                f.getName()
-        );
-
-        HttpEntity multipart = builder.build();
-        uploadFile.setEntity(multipart);
-        CloseableHttpResponse response = httpClient.execute(uploadFile);
-        HttpEntity responseEntity = response.getEntity();
-        Toast.makeText(this, responseEntity.getContent().toString(), Toast.LENGTH_SHORT).show();
-    }
+//    private void makeAPICall(String filePath, int bpm, int sampleRate, String sheetsName) throws IOException {
+//        String backendAPI = "http://192.168.1.26:5000/proccess_audio";
+//        CloseableHttpClient httpClient = HttpClients.createDefault();
+//        HttpPost uploadFile = new HttpPost(backendAPI);
+//        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+//
+//
+//
+//        builder.addTextBody("file_data", fileData, ContentType.TEXT_PLAIN);
+//
+//// This attaches the file to the POST:
+//        File f = new File(filePath);
+//        builder.addBinaryBody(
+//                "file",
+//                new FileInputStream(f),
+//                ContentType.APPLICATION_OCTET_STREAM,
+//                f.getName()
+//        );
+//
+//        HttpEntity multipart = builder.build();
+//        uploadFile.setEntity(multipart);
+//        CloseableHttpResponse response = httpClient.execute(uploadFile);
+//        HttpEntity responseEntity = response.getEntity();
+//        Toast.makeText(this, responseEntity.getContent().toString(), Toast.LENGTH_SHORT).show();
+//    }
 
     //TMP
     private void playAudio(File fileToPlay) {
@@ -184,6 +181,54 @@ public class SubmitAudioActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public class UploadTask extends AsyncTask<String, String, String> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            if(s!=null){
+                Toast.makeText(SubmitAudioActivity.this, "File Uploaded", Toast.LENGTH_SHORT).show();
+            }
+            else{
+                Toast.makeText(SubmitAudioActivity.this, "File Upload Failed", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            File audioFile = new File(strings[0]);
+            final String backendAPI = "http://127.0.0.1:5000/proccess_audio";
+
+            try {
+                RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                        .addFormDataPart("file", audioFile.getName(), RequestBody.create(MediaType.parse("*/*"), audioFile))
+                        .addFormDataPart("file_data", strings[0])
+                        .build();
+                Request request = new Request.Builder()
+                        .url(backendAPI)
+                        .post(requestBody)
+                        .build();
+
+                OkHttpClient okHttpClient = new OkHttpClient();
+                //now progressbar not showing properly let's fixed it
+                Response response = okHttpClient.newCall(request).execute();
+                if (response != null && response.isSuccessful()) {
+                    return response.body().string();
+                } else {
+                    return null;
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }
