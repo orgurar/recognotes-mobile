@@ -1,10 +1,5 @@
 package com.example.recognotes;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -20,18 +15,22 @@ import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
-    // Audio Recorder
+    // Audio Wav Recorder
     private WavAudioRecorder wavAudioRecorder;
-    private String wavFilePath;
-
 
     // Permission Defaults
     private static final String RECORD_PERMISSION = Manifest.permission.RECORD_AUDIO;
     private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+    private static final String INTERNET_PERMISSION = Manifest.permission.INTERNET;
     private static final int PERMISSION_CODE = 21;
 
     // Metronome and Media Player
@@ -49,9 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceivers myReceiver = new BroadcastReceivers();
 
     // recording's properties
-    private String recordFilePath;
     private int recordingBPM;
-    private boolean isRecording = false;
+    private String wavFilePath;
 
     // UI Components
     private ImageButton recordButton;
@@ -65,17 +63,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // initialize wav recorder
-        wavFilePath = this.getExternalFilesDir("/").getAbsolutePath() + "/record.wav";
-        wavAudioRecorder = WavAudioRecorder.getInstanse();
-        wavAudioRecorder.setOutputFile(wavFilePath);
-
         // activate the broadcast receiver
         setBroadcastReceiver();
 
         // check if device already has permissions
         if (!checkPermissions())
             requestPermissions();
+
+        // initialize wav recorder
+        wavFilePath = this.getExternalFilesDir("/").getAbsolutePath() + "/record.wav";
+        wavAudioRecorder = WavAudioRecorder.getInstanse();
+        wavAudioRecorder.setOutputFile(wavFilePath);
 
         // Init Views
         recordButton = (ImageButton)findViewById(R.id.record_button);
@@ -87,8 +85,8 @@ public class MainActivity extends AppCompatActivity {
         recordButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // should start recording
                 if (WavAudioRecorder.State.INITIALIZING == wavAudioRecorder.getState()) {
-                    // should start recording
                     if(checkPermissions()) {
                         // validate BPM input
                         final String bpmText = recordBPMInput.getText().toString();
@@ -101,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
                             recordBPMInput.setError("BPM value invalid! Should be between 0 - 500");
                             return;
                         }
+
                         //Start timer from 0
                         recordTimer.setBase(SystemClock.elapsedRealtime());
                         recordTimer.start();
@@ -119,20 +118,20 @@ public class MainActivity extends AppCompatActivity {
 
                         // Change button image and set Recording state to false
                         recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_recording, null));
-                        isRecording = true;
                     }
                     else {
                         requestPermissions();
                     }
                 }
                 else if (WavAudioRecorder.State.ERROR == wavAudioRecorder.getState()) {
+                    // error
                     recordTimer.stop();
                     wavAudioRecorder.release();
                     wavAudioRecorder = WavAudioRecorder.getInstanse();
                     wavAudioRecorder.setOutputFile(wavFilePath);
+
                     // Change button image and set Recording state to false
                     recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_stopped, null));
-                    isRecording = false;
                 }
                 else {
                     // Stop timer
@@ -144,7 +143,6 @@ public class MainActivity extends AppCompatActivity {
 
                     // Change button image and set Recording state to false
                     recordButton.setImageDrawable(getResources().getDrawable(R.drawable.record_btn_stopped, null));
-                    isRecording = false;
 
                     // new intent to jump between screens
                     Intent intent = new Intent(MainActivity.this, SubmitAudioActivity.class);
@@ -168,10 +166,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        // cancel if any beep
+        // cancel beep if active
         metronomeTimer.cancel();
     }
 
+    /*
+    This function will set the broadcast receiver to listen
+     */
     private void setBroadcastReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
@@ -189,7 +190,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean checkPermissions() {
         //Check permission
         return ActivityCompat.checkSelfPermission(this, RECORD_PERMISSION) == PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, STORAGE_PERMISSION) == PackageManager.PERMISSION_GRANTED;
+                ActivityCompat.checkSelfPermission(this, STORAGE_PERMISSION) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, INTERNET_PERMISSION) == PackageManager.PERMISSION_GRANTED;
     }
 
     /*
@@ -199,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, new String[]{
                 RECORD_PERMISSION,
                 STORAGE_PERMISSION,
+                INTERNET_PERMISSION,
         }, PERMISSION_CODE);
     }
 

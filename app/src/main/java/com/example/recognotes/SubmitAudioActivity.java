@@ -1,7 +1,5 @@
 package com.example.recognotes;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
@@ -15,8 +13,10 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.File;
-import java.io.IOException;
+import java.io.FileOutputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -50,10 +50,8 @@ public class SubmitAudioActivity extends AppCompatActivity {
         backToMainButton = (ImageButton)findViewById(R.id.back_to_main_button);
         musicServiceMute = (Switch)findViewById(R.id.music_switch);
 
-        // init intent parameters
+        // init intent parameters and read props from the main page
         Bundle intentParams = getIntent().getExtras();
-
-        // read props from the main page
         final int prop_bpm = intentParams.getInt("bpm");
         final int prop_samplerate = intentParams.getInt("sample_rate");
         final String prop_filename = intentParams.getString("recording_path");
@@ -78,13 +76,14 @@ public class SubmitAudioActivity extends AppCompatActivity {
                     return;
                 }
 
-                // now send the RESTful API request to the server
+                // assemble file's data
                 String fileData = "{" +
                         "\"sample_rate\": " + prop_samplerate + ", " +
                         "\"bpm\": " + prop_bpm + ", " +
-                        "\"sheets_title\": " + sheetsName +
+                        "\"sheets_title\": \"" + sheetsName + "\"" +
                         "}";
 
+                // perform http post request
                 UploadTask uploadTask = new UploadTask();
                 uploadTask.execute(new String[]{prop_filename, fileData});
             }
@@ -106,6 +105,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 if (!isChecked) {
                     stopServiceMediaPlayer();
                 } else {
+                    // start the service again
                     startService(new Intent(getApplicationContext(), MyService.class));
                     ring = MediaPlayer.create(SubmitAudioActivity.this, R.raw.music);
                     ring.start();
@@ -113,53 +113,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
             }
         });
     }
-
-//    private void makeAPICall(String filePath, int bpm, int sampleRate, String sheetsName) throws IOException {
-//        String backendAPI = "http://192.168.1.26:5000/proccess_audio";
-//        CloseableHttpClient httpClient = HttpClients.createDefault();
-//        HttpPost uploadFile = new HttpPost(backendAPI);
-//        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-//
-//
-//
-//        builder.addTextBody("file_data", fileData, ContentType.TEXT_PLAIN);
-//
-//// This attaches the file to the POST:
-//        File f = new File(filePath);
-//        builder.addBinaryBody(
-//                "file",
-//                new FileInputStream(f),
-//                ContentType.APPLICATION_OCTET_STREAM,
-//                f.getName()
-//        );
-//
-//        HttpEntity multipart = builder.build();
-//        uploadFile.setEntity(multipart);
-//        CloseableHttpResponse response = httpClient.execute(uploadFile);
-//        HttpEntity responseEntity = response.getEntity();
-//        Toast.makeText(this, responseEntity.getContent().toString(), Toast.LENGTH_SHORT).show();
-//    }
-
-    //TMP
-    private void playAudio(File fileToPlay) {
-
-        MediaPlayer mediaPlayer = new MediaPlayer();
-        try {
-            mediaPlayer.setDataSource(fileToPlay.getAbsolutePath());
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        //Play the audio
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                mediaPlayer.stop();
-            }
-        });
-    }
-    //END TMP
 
     @Override
     protected void onStop() {
@@ -174,8 +127,11 @@ public class SubmitAudioActivity extends AppCompatActivity {
     public void stopServiceMediaPlayer() {
         try {
             if (ring != null) {
+                // stop the media from playing
                 if (ring.isPlaying())
                     ring.stop();
+
+                // get ready to the next time
                 ring.release();
                 ring = null;
             }
@@ -193,33 +149,37 @@ public class SubmitAudioActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            if(s!=null){
-                Toast.makeText(SubmitAudioActivity.this, "File Uploaded", Toast.LENGTH_SHORT).show();
-            }
-            else{
+            if(s == null)
                 Toast.makeText(SubmitAudioActivity.this, "File Upload Failed", Toast.LENGTH_SHORT).show();
-            }
         }
 
         @Override
         protected String doInBackground(String... strings) {
+            final String backendAPI = "http://192.168.1.61:5000/proccess_audio";
+            // create java file object
             File audioFile = new File(strings[0]);
-            final String backendAPI = "http://127.0.0.1:5000/proccess_audio";
 
             try {
+                // assemble form data with the file and the file's data
                 RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                        .addFormDataPart("file", audioFile.getName(), RequestBody.create(MediaType.parse("*/*"), audioFile))
-                        .addFormDataPart("file_data", strings[0])
+                        .addFormDataPart("file", audioFile.getName(), RequestBody.create(MediaType.parse("audio/wav"), audioFile))
+                        .addFormDataPart("file_data", strings[1])
                         .build();
+
+                // send post request to the backend server
                 Request request = new Request.Builder()
                         .url(backendAPI)
                         .post(requestBody)
                         .build();
 
+                // read the response as file blob
                 OkHttpClient okHttpClient = new OkHttpClient();
-                //now progressbar not showing properly let's fixed it
                 Response response = okHttpClient.newCall(request).execute();
                 if (response != null && response.isSuccessful()) {
+                        // TODO: download file
+                        FileOutputStream fos = new FileOutputStream(getExternalFilesDir("/").getAbsolutePath() + "/record.pdf");
+                        fos.write(response.body().bytes());
+                        fos.close();
                     return response.body().string();
                 } else {
                     return null;
