@@ -18,13 +18,13 @@ public class BroadcastReceivers extends BroadcastReceiver {
             String toastMessage = "";
             switch (intentAction) {
                 case Intent.ACTION_POWER_CONNECTED:
-                    toastMessage = "Power connected!";
+                    toastMessage = "Power Connected!";
                     break;
                 case Intent.ACTION_POWER_DISCONNECTED:
-                    toastMessage = "Power disconnected!";
+                    toastMessage = "Power Disconnected!";
                     break;
                 case Intent.ACTION_BATTERY_LOW:
-                    toastMessage = "Battery percentage low!";
+                    toastMessage = "Battery Percentage Low!";
                     simpleAlert(context, toastMessage);
                     break;
             }
@@ -39,8 +39,9 @@ public class BroadcastReceivers extends BroadcastReceiver {
         builder.setTitle(massage);
         builder.setMessage("Your Battery percentage is EXTREMELY LOW,\nplease connect your phone to a power source");
         builder.setCancelable(false);
-        builder.setNeutralButton("OK", (dialog, which) ->
-        {dialog.dismiss();});
+        builder.setNeutralButton("OK", (dialog, which) -> {
+            dialog.dismiss();
+        });
         builder.create();
         builder.show();
     }

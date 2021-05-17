@@ -19,4 +19,7 @@
     <string name="submit_samplerate_placeholder">recordings sample rate here</string>
     <string name="current_sheetsname">Current Sheets Name:</string>
     <string name="submit_sheetsname_placeholder">Enter Sheets File Name</string>
+
+    <string name="welcome_recognotes_title">Welcome to RecogNotes!</string>
+    <string name="welcome_second_text">RecogNotes app will provide you mobility and efficiency when it comes to audio</string>
 </resources>

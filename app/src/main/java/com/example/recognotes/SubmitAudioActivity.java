@@ -34,16 +34,12 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class SubmitAudioActivity extends AppCompatActivity {
-    // Media Player for music service
-    private MediaPlayer ring;
-
     // UI Components
     private TextView recordingBPM;
     private TextView recordingWavFile;
     private EditText recordSheetsNameInput;
     private Button submitButton;
     private ImageButton backToMainButton;
-    private Switch musicServiceMute;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +58,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
         recordSheetsNameInput = (EditText)findViewById(R.id.sheetsname_input_text);
         submitButton = (Button)findViewById(R.id.submit_request_button);
         backToMainButton = (ImageButton)findViewById(R.id.back_to_main_button);
-        musicServiceMute = (Switch)findViewById(R.id.music_switch);
 
         // init intent parameters and read props from the main page
         Bundle intentParams = getIntent().getExtras();
@@ -73,11 +68,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
         // set texts to the given props
         recordingBPM.setText("Recording's BPM: " + prop_bpm);
         recordingWavFile.setText("Recording's Sample Rate: " + prop_samplerate);
-
-        // start the music service
-        startService(new Intent(getApplicationContext(), MyService.class));
-        ring = MediaPlayer.create(SubmitAudioActivity.this, R.raw.music);
-        ring.start();
 
         // submit button onclick
         submitButton.setOnClickListener(new View.OnClickListener() {
@@ -90,7 +80,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                     return;
                 }
 
-                // assemble file's data
+                // assemble file's data as JSON string (to fit backend server)
                 String fileData = "{" +
                         "\"sample_rate\": " + prop_samplerate + ", " +
                         "\"bpm\": " + prop_bpm + ", " +
@@ -111,47 +101,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
-        // set listener to service's switch
-        musicServiceMute.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (!isChecked) {
-                    stopServiceMediaPlayer();
-                } else {
-                    // start the service again
-                    startService(new Intent(getApplicationContext(), MyService.class));
-                    ring = MediaPlayer.create(SubmitAudioActivity.this, R.raw.music);
-                    ring.start();
-                }
-            }
-        });
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        stopServiceMediaPlayer();
-    }
-
-    /** Media Player */
-    /*
-    stops the music
-     */
-    public void stopServiceMediaPlayer() {
-        try {
-            if (ring != null) {
-                // stop the media from playing
-                if (ring.isPlaying())
-                    ring.stop();
-
-                // get ready to the next time
-                ring.release();
-                ring = null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public class UploadTask extends AsyncTask<String, String, InputStream> {
@@ -164,10 +113,11 @@ public class SubmitAudioActivity extends AppCompatActivity {
         protected void onPostExecute(InputStream inputStream) {
             super.onPostExecute(inputStream);
             if (inputStream != null) {
+                // create a new PDF file
                 String pdfFilePath = getExternalFilesDir("/") + "/record.pdf";
                 File file = new File(pdfFilePath);
 
-                // save PDF file
+                // read the data blob into the PDF
                 try {
                     FileOutputStream f = new FileOutputStream(file);
 
@@ -181,6 +131,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 
+                // open the PDF using Intent.createChooser
                 Intent target = new Intent(Intent.ACTION_VIEW);
                 target.setDataAndType(Uri.fromFile(file), "application/pdf");
                 target.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
@@ -221,6 +172,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 if (!response.isSuccessful()) {
                     return null;
                 } else {
+                    assert response.body() != null;
                     return response.body().byteStream();
                 }
 
