@@ -22,4 +22,6 @@
 
     <string name="welcome_recognotes_title">Welcome to RecogNotes!</string>
     <string name="welcome_second_text">RecogNotes app will provide you mobility and efficiency when it comes to audio</string>
+
+    <string name="default_web_client_id">835229068656-ntii819tlhi6mhdm33m9rq4fsvneo5qc.apps.googleusercontent.com</string>
 </resources>
