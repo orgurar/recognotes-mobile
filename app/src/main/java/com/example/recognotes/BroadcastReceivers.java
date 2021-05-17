@@ -8,8 +8,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 
 public class BroadcastReceivers extends BroadcastReceiver {
-
-
     @Override
     public void onReceive(Context context, Intent intent) {
         // an Intent broadcast.
@@ -37,7 +35,7 @@ public class BroadcastReceivers extends BroadcastReceiver {
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(massage);
-        builder.setMessage("Your Battery percentage is EXTREMELY LOW,\nplease connect your phone to a power source");
+        builder.setMessage("Your Battery percentage is low,\nWe recommend connecting your phone to a power source immediately");
         builder.setCancelable(false);
         builder.setNeutralButton("OK", (dialog, which) -> {
             dialog.dismiss();

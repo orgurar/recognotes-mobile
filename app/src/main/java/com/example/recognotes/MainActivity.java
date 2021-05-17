@@ -1,6 +1,7 @@
 package com.example.recognotes;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -17,8 +18,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,6 +50,15 @@ public class MainActivity extends AppCompatActivity {
 
     // Broadcast Receiver
     private final BroadcastReceivers myReceiver = new BroadcastReceivers();
+    // This function will set the broadcast receiver to listen
+    private void setBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        filter.addAction(Intent.ACTION_POWER_CONNECTED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        // Register the receiver using the activity context.
+        this.registerReceiver(myReceiver, filter);
+    }
 
     // recording's properties
     private int recordingBPM;
@@ -56,6 +69,10 @@ public class MainActivity extends AppCompatActivity {
     private Chronometer recordTimer;
     private Switch recordMetronome;
     private EditText recordBPMInput;
+    private ImageButton signOutButton;
+
+    // Firebase
+    FirebaseAuth fAuth;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -70,6 +87,18 @@ public class MainActivity extends AppCompatActivity {
         if (!checkPermissions())
             requestPermissions();
 
+        // initiate firebase instance
+        fAuth = FirebaseAuth.getInstance();
+
+        String connectedUsersName;
+
+        // Say hello to the connected user
+        if (fAuth.getCurrentUser() != null)
+            connectedUsersName = fAuth.getCurrentUser().getDisplayName();
+        else
+            connectedUsersName = "Guest";
+        Toast.makeText(this, "Hello " + connectedUsersName, Toast.LENGTH_SHORT).show();
+
         // initialize wav recorder
         wavFilePath = this.getExternalFilesDir("/").getAbsolutePath() + "/record.wav";
         wavAudioRecorder = WavAudioRecorder.getInstanse();
@@ -80,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         recordTimer = (Chronometer)findViewById(R.id.record_timer);
         recordMetronome = (Switch)findViewById(R.id.main_metronome_switch);
         recordBPMInput = (EditText)findViewById(R.id.main_bpm_input);
+        signOutButton = (ImageButton)findViewById(R.id.sign_out_button);
 
         // set record button on click listener
         recordButton.setOnClickListener(new View.OnClickListener() {
@@ -160,6 +190,37 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // open a dialog and ask weather to sign out or not
+        signOutButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Sign out")
+                        .setMessage("Would you like to disconnect from this user?")
+                        .setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // disconnect from firebase user
+                                if(fAuth.getCurrentUser() != null) {
+                                    Toast.makeText(MainActivity.this, "You signed out " + fAuth.getCurrentUser().getDisplayName(), Toast.LENGTH_LONG).show();
+                                    fAuth.signOut();
+                                    // redirect user: Main -> Welcome
+                                    Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
+                                    startActivity(intent);
+                                }
+                                else {
+                                    Toast.makeText(MainActivity.this, "There is no users signed in", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        })
+                        .setNegativeButton("no", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) { dialog.dismiss(); }
+                        })
+                        .create().show();
+            }
+        });
     }
 
     @Override
@@ -168,18 +229,6 @@ public class MainActivity extends AppCompatActivity {
 
         // cancel beep if active
         metronomeTimer.cancel();
-    }
-
-    /*
-    This function will set the broadcast receiver to listen
-     */
-    private void setBroadcastReceiver() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-        filter.addAction(Intent.ACTION_POWER_CONNECTED);
-        filter.addAction(Intent.ACTION_BATTERY_LOW);
-        // Register the receiver using the activity context.
-        this.registerReceiver(myReceiver, filter);
     }
 
     /** Permissions */

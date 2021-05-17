@@ -2,11 +2,14 @@
   <dictionary name="משתמש">
     <words>
       <w>ffmpeg</w>
+      <w>fullname</w>
       <w>mpeg</w>
       <w>recog</w>
       <w>recognotes</w>
       <w>samplerate</w>
       <w>sheetsname</w>
+      <w>signin</w>
+      <w>signup</w>
       <w>tful</w>
     </words>
   </dictionary>

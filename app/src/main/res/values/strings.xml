@@ -23,5 +23,17 @@
     <string name="welcome_recognotes_title">Welcome to RecogNotes!</string>
     <string name="welcome_second_text">RecogNotes app will provide you mobility and efficiency when it comes to audio</string>
 
-    <string name="default_web_client_id">835229068656-ntii819tlhi6mhdm33m9rq4fsvneo5qc.apps.googleusercontent.com</string>
+    <string name="firebase_web_client_id">835229068656-ntii819tlhi6mhdm33m9rq4fsvneo5qc.apps.googleusercontent.com</string>
+
+    <string name="signup_info">Signup to RecogNotes</string>
+    <string name="signup_full_name">Full Name</string>
+    <string name="signup_email">Email</string>
+    <string name="signup_password">Password</string>
+    <string name="signup_register_button">Register</string>
+    <string name="signup_login_here">Already Registered ? Login Here</string>
+    <string name="login_button">Login</string>
+    <string name="login_signup_here">New Here ? Create Account</string>
+    <string name="welcome_register">Register</string>
+    <string name="welcome_signin">Sign in</string>
+    <string name="welcome_guest">Continue as guest</string>
 </resources>

@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/recognotes_background_image"
     tools:context=".WelcomeActivity">
 
     <LinearLayout
@@ -43,20 +44,21 @@
             android:id="@+id/welcome_second_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
+            android:layout_marginLeft="20dp"
             android:layout_marginTop="40dp"
             android:text="@string/welcome_second_text"
             android:textSize="30sp" />
 
-        <com.google.android.gms.common.SignInButton
-        android:id="@+id/google_sign_in"
+    <Button
+        android:id="@+id/user_register"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="130dp"
-        android:layout_marginLeft="7dp"
-        android:layout_marginRight="7dp"
-        app:buttonSize="wide" />
+        android:textColor="@color/black"
+        android:background="@xml/rounded_corners"
+        android:layout_marginTop="120dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:text="@string/welcome_register" />
 
     <Button
         android:id="@+id/user_sign_in"
@@ -67,7 +69,7 @@
         android:layout_marginRight="10dp"
         android:textColor="@color/black"
         android:background="@xml/rounded_corners"
-        android:text="Sign in" />
+        android:text="@string/welcome_signin" />
 
     <Button
         android:id="@+id/guset_sign_in"
@@ -78,7 +80,7 @@
         android:layout_marginRight="10dp"
         android:textColor="@color/black"
         android:background="@xml/rounded_corners"
-        android:text="Continue as guest" />
+        android:text="@string/welcome_guest" />
 
     </LinearLayout>
 
