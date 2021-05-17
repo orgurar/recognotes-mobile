@@ -44,7 +44,7 @@
             android:id="@+id/welcome_second_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="20dp"
+            android:layout_marginLeft="30dp"
             android:layout_marginTop="40dp"
             android:text="@string/welcome_second_text"
             android:textSize="30sp" />
@@ -54,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/black"
-        android:background="@xml/rounded_corners"
+        android:background="@xml/rounded_corners_opacity"
         android:layout_marginTop="120dp"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
@@ -68,7 +68,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginRight="10dp"
         android:textColor="@color/black"
-        android:background="@xml/rounded_corners"
+        android:background="@xml/rounded_corners_opacity"
         android:text="@string/welcome_signin" />
 
     <Button
@@ -79,7 +79,7 @@
         android:layout_marginTop="15dp"
         android:layout_marginRight="10dp"
         android:textColor="@color/black"
-        android:background="@xml/rounded_corners"
+        android:background="@xml/rounded_corners_opacity"
         android:text="@string/welcome_guest" />
 
     </LinearLayout>
