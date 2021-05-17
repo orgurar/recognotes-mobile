@@ -2,8 +2,10 @@ package com.example.recognotes;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -15,8 +17,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -41,6 +49,12 @@ public class SubmitAudioActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_submit_audio);
+
+        // Ignore URI exposure for PDF download
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
         // init components
         recordingBPM = (TextView)findViewById(R.id.recording_bpm_text);
@@ -140,21 +154,50 @@ public class SubmitAudioActivity extends AppCompatActivity {
         }
     }
 
-    public class UploadTask extends AsyncTask<String, String, String> {
+    public class UploadTask extends AsyncTask<String, String, InputStream> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            if(s == null)
+        protected void onPostExecute(InputStream inputStream) {
+            super.onPostExecute(inputStream);
+            if (inputStream != null) {
+                String pdfFilePath = getExternalFilesDir("/") + "/record.pdf";
+                File file = new File(pdfFilePath);
+
+                // save PDF file
+                try {
+                    FileOutputStream f = new FileOutputStream(file);
+
+                    byte[] buffer = new byte[2 * 1024];
+                    int len;
+                    while ((len = inputStream.read(buffer)) != -1 ) {
+                        f.write(buffer, 0, len);
+                    }
+                    f.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Intent target = new Intent(Intent.ACTION_VIEW);
+                target.setDataAndType(Uri.fromFile(file), "application/pdf");
+                target.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
+                Intent intent = Intent.createChooser(target, "Open File");
+                try {
+                    startActivity(intent);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
                 Toast.makeText(SubmitAudioActivity.this, "File Upload Failed", Toast.LENGTH_SHORT).show();
+            }
         }
 
         @Override
-        protected String doInBackground(String... strings) {
+        protected InputStream doInBackground(String... strings) {
             final String backendAPI = "http://192.168.1.61:5000/proccess_audio";
             // create java file object
             File audioFile = new File(strings[0]);
@@ -175,14 +218,10 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 // read the response as file blob
                 OkHttpClient okHttpClient = new OkHttpClient();
                 Response response = okHttpClient.newCall(request).execute();
-                if (response != null && response.isSuccessful()) {
-                        // TODO: download file
-                        FileOutputStream fos = new FileOutputStream(getExternalFilesDir("/").getAbsolutePath() + "/record.pdf");
-                        fos.write(response.body().bytes());
-                        fos.close();
-                    return response.body().string();
-                } else {
+                if (!response.isSuccessful()) {
                     return null;
+                } else {
+                    return response.body().byteStream();
                 }
 
             } catch (Exception e) {

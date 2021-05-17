@@ -16,6 +16,7 @@
         android:theme="@style/Theme.AppCompat.NoActionBar"
         android:usesCleartextTraffic="true"
         tools:targetApi="m">
+
         <activity android:name=".SubmitAudioActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
