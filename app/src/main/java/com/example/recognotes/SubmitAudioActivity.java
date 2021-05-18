@@ -158,7 +158,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
         @Override
         protected InputStream doInBackground(String... strings) {
             // API of the audio server
-            final String backendAPI = "http://192.168.1.61:5000/proccess_audio";
+            final String backendAPI = "http://192.168.1.32:5000/proccess_audio";
             // create java file object
             File audioFile = new File(strings[0]);
 

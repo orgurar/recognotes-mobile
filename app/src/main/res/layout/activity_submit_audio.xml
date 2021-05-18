@@ -104,7 +104,7 @@
         android:id="@+id/submit_request_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="4dp"
+        android:padding="10dp"
         android:background="@xml/rounded_corners"
         android:text="@string/submit_audio"
         android:textColor="@color/recognotes_background"

@@ -53,7 +53,7 @@
         android:id="@+id/user_register"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:background="@xml/rounded_corners_opacity"
         android:layout_marginTop="120dp"
         android:layout_marginLeft="10dp"
@@ -67,7 +67,7 @@
         android:layout_marginLeft="10dp"
         android:layout_marginTop="12dp"
         android:layout_marginRight="10dp"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:background="@xml/rounded_corners_opacity"
         android:text="@string/welcome_signin" />
 
@@ -78,7 +78,7 @@
         android:layout_marginLeft="10dp"
         android:layout_marginTop="15dp"
         android:layout_marginRight="10dp"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:background="@xml/rounded_corners_opacity"
         android:text="@string/welcome_guest" />
 
