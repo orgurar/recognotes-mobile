@@ -9,6 +9,9 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.StrictMode;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -49,12 +52,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_submit_audio);
-
-        // Ignore URI exposure for PDF download
-        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-        StrictMode.setVmPolicy(builder.build());
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
 
         // init components
         recordingBPM = (TextView)findViewById(R.id.recording_bpm_text);
@@ -122,7 +119,6 @@ public class SubmitAudioActivity extends AppCompatActivity {
     public class UploadTask extends AsyncTask<String, String, String> {
         // API of the audio server
         final private String backendAPI = "http://192.168.1.61:5000";
-        private DownloadManager downloadManager;
 
         @Override
         protected void onPreExecute() {
@@ -130,29 +126,27 @@ public class SubmitAudioActivity extends AppCompatActivity {
         }
 
         /*
-        The 'return' statement from the 'doInBackground' passes as a parameter to this funcion
+        The 'return' statement from the 'doInBackground' passes as a parameter to this function
          */
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
 
+            // create a text view containing the pdf link
+            final TextView message = new TextView(SubmitAudioActivity.this);
+            final SpannableString dialogMessage = new SpannableString(backendAPI + "/get-file/" + s);
+
+            Linkify.addLinks(dialogMessage, Linkify.WEB_URLS);
+            message.setText(dialogMessage);
+            message.setMovementMethod(LinkMovementMethod.getInstance());
+
+            // create the alert dialog with dismiss button
             final AlertDialog.Builder passwordResetDialog = new AlertDialog.Builder(SubmitAudioActivity.this);
-            passwordResetDialog.setTitle("Reset Password ?");
-            passwordResetDialog.setMessage(backendAPI + "/get-file/" + s);
+            passwordResetDialog.setTitle("Music Notes Sheets Ready");
+            passwordResetDialog.setCancelable(true);
+            passwordResetDialog.setPositiveButton("Dismiss", null);
+            passwordResetDialog.setView(message);
 
-            passwordResetDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-
-                }
-            });
-
-            passwordResetDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    // close the dialog
-                }
-            });
             passwordResetDialog.create().show();
         }
 

@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
@@ -28,6 +29,17 @@ public class WelcomeActivity extends AppCompatActivity {
     private Button emailSignIn;
     private Button guestSignIn;
 
+    // Broadcast Receiver
+    private final BroadcastReceivers myReceiver = new BroadcastReceivers();
+    // This function will set the broadcast receiver to listen
+    private void setBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+        filter.addAction(Intent.ACTION_POWER_CONNECTED);
+        filter.addAction(Intent.ACTION_BATTERY_LOW);
+        // Register the receiver using the activity context.
+        this.registerReceiver(myReceiver, filter);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +51,9 @@ public class WelcomeActivity extends AppCompatActivity {
         userRegister = (Button)findViewById(R.id.user_register);
         emailSignIn = (Button)findViewById(R.id.user_sign_in);
         guestSignIn = (Button)findViewById(R.id.guset_sign_in);
+
+        // activate the broadcast receiver
+        setBroadcastReceiver();
 
         // get firebase instance
         fAuth = FirebaseAuth.getInstance();

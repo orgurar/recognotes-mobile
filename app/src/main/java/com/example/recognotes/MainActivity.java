@@ -48,18 +48,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    // Broadcast Receiver
-    private final BroadcastReceivers myReceiver = new BroadcastReceivers();
-    // This function will set the broadcast receiver to listen
-    private void setBroadcastReceiver() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-        filter.addAction(Intent.ACTION_POWER_CONNECTED);
-        filter.addAction(Intent.ACTION_BATTERY_LOW);
-        // Register the receiver using the activity context.
-        this.registerReceiver(myReceiver, filter);
-    }
-
     // recording's properties
     private int recordingBPM;
     private String wavFilePath;
@@ -79,9 +67,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // activate the broadcast receiver
-        setBroadcastReceiver();
 
         // check if device already has permissions
         if (!checkPermissions())
