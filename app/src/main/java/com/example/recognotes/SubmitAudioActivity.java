@@ -1,9 +1,13 @@
 package com.example.recognotes;
 
+import android.app.DownloadManager;
+import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.StrictMode;
 import android.view.View;
 import android.widget.Button;
@@ -12,12 +16,19 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -108,7 +119,11 @@ public class SubmitAudioActivity extends AppCompatActivity {
     /*
     This class presents the async HTTP post request to the server
      */
-    public class UploadTask extends AsyncTask<String, String, InputStream> {
+    public class UploadTask extends AsyncTask<String, String, String> {
+        // API of the audio server
+        final private String backendAPI = "http://192.168.1.61:5000";
+        private DownloadManager downloadManager;
+
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -118,47 +133,31 @@ public class SubmitAudioActivity extends AppCompatActivity {
         The 'return' statement from the 'doInBackground' passes as a parameter to this funcion
          */
         @Override
-        protected void onPostExecute(InputStream inputStream) {
-            super.onPostExecute(inputStream);
-            if (inputStream != null) {
-                // create a new PDF file
-                String pdfFilePath = getExternalFilesDir("/") + "/record.pdf";
-                File file = new File(pdfFilePath);
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
 
-                // read the data blob into the PDF
-                try {
-                    FileOutputStream f = new FileOutputStream(file);
+            final AlertDialog.Builder passwordResetDialog = new AlertDialog.Builder(SubmitAudioActivity.this);
+            passwordResetDialog.setTitle("Reset Password ?");
+            passwordResetDialog.setMessage(backendAPI + "/get-file/" + s);
 
-                    byte[] buffer = new byte[2 * 1024];
-                    int len;
-                    while ((len = inputStream.read(buffer)) != -1 ) {
-                        f.write(buffer, 0, len);
-                    }
-                    f.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+            passwordResetDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
                 }
+            });
 
-                // open the PDF using Intent.createChooser
-                Intent target = new Intent(Intent.ACTION_VIEW);
-                target.setDataAndType(Uri.fromFile(file), "application/pdf");
-                target.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-
-                Intent intent = Intent.createChooser(target, "Open File");
-                try {
-                    startActivity(intent);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            passwordResetDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // close the dialog
                 }
-            } else {
-                Toast.makeText(SubmitAudioActivity.this, "File Upload Failed", Toast.LENGTH_SHORT).show();
-            }
+            });
+            passwordResetDialog.create().show();
         }
 
         @Override
-        protected InputStream doInBackground(String... strings) {
-            // API of the audio server
-            final String backendAPI = "http://192.168.1.32:5000/proccess_audio";
+        protected String doInBackground(String... strings) {
             // create java file object
             File audioFile = new File(strings[0]);
 
@@ -171,7 +170,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
 
                 // send post request to the backend server
                 Request request = new Request.Builder()
-                        .url(backendAPI)
+                        .url(backendAPI + "/proccess_audio")
                         .post(requestBody)
                         .build();
 
@@ -181,8 +180,7 @@ public class SubmitAudioActivity extends AppCompatActivity {
                 if (!response.isSuccessful()) {
                     return null;
                 } else {
-                    assert response.body() != null;
-                    return response.body().byteStream();
+                    return response.body().string();
                 }
 
             } catch (Exception e) {

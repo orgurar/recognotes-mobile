@@ -19,6 +19,7 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.AppCompat.NoActionBar"
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
         tools:targetApi="m">
         <activity android:name=".SignupActivity"></activity>
         <activity android:name=".LoginActivity" />
